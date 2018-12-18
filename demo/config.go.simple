@@ -1,0 +1,10 @@
+package main
+
+// 从 https://rasolution.ifunplus.cn/ 建帐号领
+
+const (
+	configSignatureSecretKey = ``
+	configServerGate         = ``
+	configClientGate         = ``
+	configProjectID          = 1
+)
