@@ -15,6 +15,7 @@ type Client struct {
 	Endpoint string
 	seq      uint32
 	mid      int64
+	remain   []byte // 上一次读取不完整的信息，在下一次读取时填到头部
 }
 
 type clientWhich struct {
@@ -84,6 +85,8 @@ func NewClient(uid int64) *Client {
 // Connect 创建连接
 func (c *Client) Connect() (err error) {
 
+	c.remain = nil
+
 	err = c.connect(c.Config.ClientGate)
 	if err != nil {
 		return
@@ -135,7 +138,7 @@ func (c *Client) which() (err error) {
 	}
 
 	r := clientWhichReturn{}
-	err = json.Unmarshal(data.Content, &r)
+	err = json.Unmarshal(data[0].Content, &r)
 	if err != nil {
 		return
 	}
@@ -244,20 +247,25 @@ func (c *Client) answer(seq []byte, data interface{}) (err error) {
 }
 
 // Read 读
-func (c *Client) Read() (r *Read, err error) {
+func (c *Client) Read() (ra []*Read, err error) {
 
-	r, err = read(c.Conn)
+	var remain []byte
+	ra, remain, err = read(c.Conn, c.remain)
 	if err != nil {
 		return
 	}
+	c.remain = remain
 
-	if !c.parse(r) {
-		return nil, nil
-	}
+	for _, r := range ra {
 
-	if r.Method == `pushmsg` {
-		buf := mpp.ToJson(r.Content)
-		r.Content = buf.Bytes()
+		if !c.parse(r) {
+			continue
+		}
+
+		if r.Method == `pushmsg` {
+			buf := mpp.ToJson(r.Content)
+			r.Content = buf.Bytes()
+		}
 	}
 
 	return

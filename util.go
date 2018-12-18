@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
-	"net"
 	"time"
 )
 
@@ -60,55 +59,4 @@ func getSendBuffer(mtype Mtype, sizeOrStatus uint8) (buf bytes.Buffer) {
 	buf.WriteByte(uint8(mtype)) // mtype answer
 	buf.WriteByte(sizeOrStatus) // size or status
 	return buf
-}
-
-func read(conn *net.TCPConn) (r *Read, err error) {
-
-	recv := make([]byte, 4096)
-
-	size, err := conn.Read(recv)
-	if err != nil {
-		return
-	}
-
-	var mtype Mtype
-
-	switch recv[6] {
-	case 0,
-		1,
-		2:
-
-		mtype = Mtype(recv[6])
-
-	default:
-
-		err = ErrUnknownMtype
-		return
-	}
-
-	r = &Read{
-		Mtype: mtype,
-	}
-
-	length := 0
-	if mtype == MtypeAnswer {
-		if recv[7] != 0 {
-			err = ErrAnswerStatus
-		}
-	} else {
-		length = int(recv[7])
-	}
-	methodEnd := 16 + length
-
-	r.Content = recv[methodEnd:size]
-
-	if mtype != MtypeOneWay {
-		r.Seq = recv[12:16]
-	}
-
-	if length > 0 {
-		r.Method = string(recv[16:methodEnd])
-	}
-
-	return
 }

@@ -218,7 +218,12 @@ func (s *Server) send(method string, data interface{}) (err error) {
 
 func (s *Server) Read() (r *Read, err error) {
 
-	r, err = read(s.Conn)
+	ra, _, err := read(s.Conn, nil)
+	if err != nil {
+		return
+	}
+
+	r = ra[0]
 
 	return
 }
