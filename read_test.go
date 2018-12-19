@@ -15,9 +15,9 @@ func TestRead(t *testing.T) {
 
 	// 单独测试两个基本数据有没有问题 part 1
 
-	r, remain, err := readByte(data1)
+	r1, remain, err := readByte(data1)
 
-	if reflect.TypeOf(r).String() != `[]*rtm.Read` {
+	if reflect.TypeOf(r1).String() != `[]*rtm.Read` {
 		t.Error(`data1 type error`)
 	}
 
@@ -31,8 +31,8 @@ func TestRead(t *testing.T) {
 
 	// 单独测试两个基本数据有没有问题 part 2
 
-	r, remain, err = readByte(data2)
-	if reflect.TypeOf(r).String() != `[]*rtm.Read` {
+	r2, remain, err := readByte(data2)
+	if reflect.TypeOf(r2).String() != `[]*rtm.Read` {
 		t.Error(`data2 type error`)
 	}
 
@@ -44,18 +44,44 @@ func TestRead(t *testing.T) {
 		t.Error(`data2 parse error`)
 	}
 
-	// 不完整数据
+	if reflect.DeepEqual(r1, r2) {
+		t.Error(`data1 & data2 are equal`)
+	}
 
-	for _, i := range []int{32, len(data2) - 2} {
+	size := len(data1)
+	for i := 0; i < size; i++ {
 
-		fmt.Println(`test`, i)
-
-		r, remain, err = readByte(data2[:i])
-
+		// 不完整数据
+		r, remain, err := readByte(data1[:i])
 		if r != nil {
-			t.Error(`data3 parse error`)
+			t.Error(`broken data1 parse error`, i)
+		}
+		if len(remain) != i {
+			t.Error(`broken data1 remain error`, i, len(remain))
+		}
+		if err != nil {
+			t.Error(`broken data1 error`, i)
 		}
 
-		fmt.Println(`data3`, r, len(remain), err)
+		// 第一个完整，第二个不完整
+		data := make([]byte, size+i)
+		copy(data, data1)
+		copy(data[size:], data2)
+
+		r, remain, err = readByte(data)
+		if r == nil || len(r) != 1 {
+			t.Error(`data3 parse error`, i)
+		}
+		if !reflect.DeepEqual(r, r1) || reflect.DeepEqual(r, r2) {
+			t.Error(`data3 parse error`, i)
+		}
+		if len(remain) != i {
+			t.Error(`data3 remain error`, i, len(remain))
+		}
+		if err != nil {
+			t.Error(`data3 error`, i)
+		}
+
+		// fmt.Println(`data3`, r, len(remain), err)
 	}
 }

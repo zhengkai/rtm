@@ -19,7 +19,11 @@ func read(conn *net.TCPConn, pad []byte) (r []*Read, remain []byte, err error) {
 		return
 	}
 
-	r, remain, err = readByte(recv[:size:size])
+	r, remain, err = readByte(recv[:size])
+
+	if err != nil {
+		conn.Close()
+	}
 
 	return
 }
@@ -29,16 +33,18 @@ func readByte(line []byte) (r []*Read, remain []byte, err error) {
 	for {
 
 		var rt *Read
-		var isBreak = false
 
-		rt, remain, isBreak, err = readParse(line)
+		rt, remain, err = readParse(line)
 
-		if isBreak {
-			return
+		if err != nil {
+			break
 		}
 
-		r = append(r, rt)
-
+		if rt == nil {
+			break
+		} else {
+			r = append(r, rt)
+		}
 		if remain == nil {
 			break
 		}
@@ -49,49 +55,47 @@ func readByte(line []byte) (r []*Read, remain []byte, err error) {
 	return
 }
 
-func readParse(recv []byte) (r *Read, remain []byte, isBreak bool, err error) {
+func readParse(recv []byte) (r *Read, remain []byte, err error) {
 
-	r, err = readParseInit(recv)
-	if err != nil {
+	dataSize := len(recv)
+
+	// http://wiki.ifunplus.cn/display/core/FPNN+protocol
+
+	if dataSize < 12 {
+		remain = recv
 		return
 	}
 
-	dataLen := len(recv)
-
-	length := 0
-	if r.Mtype == MtypeAnswer {
-		if recv[7] != 0 {
-			err = ErrAnswerStatus
-		}
-	} else {
-		length = int(recv[7])
-	}
-	methodEnd := 16 + length
-
-	var payloadLen uint32
-	buf := bytes.NewBuffer(recv[8:12])
-	binary.Read(buf, binary.LittleEndian, &payloadLen)
-
-	fullLen := methodEnd + int(payloadLen)
-
-	if fullLen > dataLen {
-		return nil, recv, true, nil
+	r, err = readParseInit(recv)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	// fmt.Println(`sample`, recv[:fullLen:fullLen])
-
-	r.Content = recv[methodEnd:fullLen]
-
-	if r.Mtype != MtypeOneWay {
-		r.Seq = recv[12:16]
+	headSize, methodSize, fullSize, err := readParseSize(recv, r.Mtype)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	if length > 0 {
-		r.Method = string(recv[16:methodEnd])
+	if fullSize > dataSize { // 长度不够，意味着要等下一行数据才能拼出来
+		return nil, recv, nil
 	}
 
-	if fullLen < dataLen {
-		remain = recv[fullLen:dataLen:dataLen]
+	if headSize > 12 {
+		r.Seq = recv[12:headSize]
+	}
+
+	beforePayload := headSize + methodSize
+
+	if beforePayload < fullSize {
+		r.Content = recv[beforePayload:fullSize]
+	}
+
+	if methodSize > 0 {
+		r.Method = string(recv[headSize:beforePayload])
+	}
+
+	if fullSize < dataSize {
+		remain = recv[fullSize:]
 	}
 
 	return
@@ -117,6 +121,31 @@ func readParseInit(recv []byte) (r *Read, err error) {
 	r = &Read{
 		Mtype: mtype,
 	}
+
+	return
+}
+
+func readParseSize(recv []byte, mtype Mtype) (headSize, methodSize int, fullSize int, err error) {
+
+	headSize = 12 // Method Name 之前的字节数
+	if mtype != MtypeOneWay {
+		headSize += 4
+	}
+
+	if mtype == MtypeAnswer {
+		if recv[7] != 0 {
+			err = ErrAnswerStatus
+			return
+		}
+	} else {
+		methodSize = int(recv[7]) // Method Name 字节数
+	}
+
+	var payloadSize uint32 // payload 字节数
+	buf := bytes.NewBuffer(recv[8:12])
+	binary.Read(buf, binary.LittleEndian, &payloadSize)
+
+	fullSize = headSize + methodSize + int(payloadSize)
 
 	return
 }
