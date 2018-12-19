@@ -3,6 +3,7 @@ package rtm
 import (
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"net"
 
 	"github.com/zhengkai/mpp"
@@ -256,6 +257,10 @@ func (c *Client) Read() (ra []*Read, err error) {
 	}
 	c.remain = remain
 
+	if len(remain) > 0 {
+		fmt.Println(`remain`, len(remain), remain, c)
+	}
+
 	for _, r := range ra {
 
 		if !c.parse(r) {
@@ -281,6 +286,7 @@ func (c *Client) parse(r *Read) (isReturn bool) {
 	return true
 }
 
+// GetPushmsg ...
 func GetPushmsg(b []byte) (r ClientPushmsg, err error) {
 	r = ClientPushmsg{}
 	err = json.Unmarshal(b, &r)

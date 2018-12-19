@@ -10,16 +10,18 @@ func read(conn *net.TCPConn, pad []byte) (r []*Read, remain []byte, err error) {
 
 	recv := make([]byte, 4096)
 
-	if pad != nil {
-		recv = append(pad, recv...)
-	}
-
 	size, err := conn.Read(recv)
 	if err != nil {
 		return
 	}
 
-	r, remain, err = readByte(recv[:size])
+	if len(pad) > 0 {
+		recv = append(pad, recv[:size]...)
+	} else {
+		recv = recv[:size:size]
+	}
+
+	r, remain, err = readByte(recv)
 
 	if err != nil {
 		conn.Close()
@@ -32,18 +34,18 @@ func readByte(line []byte) (r []*Read, remain []byte, err error) {
 
 	for {
 
-		var rt *Read
+		var rp *Read
 
-		rt, remain, err = readParse(line)
+		rp, remain, err = readParse(line)
 
 		if err != nil {
 			break
 		}
 
-		if rt == nil {
+		if rp == nil {
 			break
 		} else {
-			r = append(r, rt)
+			r = append(r, rp)
 		}
 		if remain == nil {
 			break
@@ -71,6 +73,8 @@ func readParse(recv []byte) (r *Read, remain []byte, err error) {
 		return nil, nil, err
 	}
 
+	// fmt.Println(`readParse`, recv)
+
 	headSize, methodSize, fullSize, err := readParseSize(recv, r.Mtype)
 	if err != nil {
 		return nil, nil, err
@@ -95,6 +99,7 @@ func readParse(recv []byte) (r *Read, remain []byte, err error) {
 	}
 
 	if fullSize < dataSize {
+		// fmt.Println(`make remain`, fullSize, dataSize)
 		remain = recv[fullSize:]
 	}
 
@@ -144,6 +149,8 @@ func readParseSize(recv []byte, mtype Mtype) (headSize, methodSize int, fullSize
 	var payloadSize uint32 // payload 字节数
 	buf := bytes.NewBuffer(recv[8:12])
 	binary.Read(buf, binary.LittleEndian, &payloadSize)
+
+	// fmt.Println(`calc fullSize`, MtypeAnswer, recv[0:12], headSize, methodSize, payloadSize)
 
 	fullSize = headSize + methodSize + int(payloadSize)
 
