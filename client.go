@@ -50,7 +50,7 @@ type clientSendmsg struct {
 	To int64 `json:"to"`
 }
 
-//  from:int64, mtype:int8, ftype:int8, mid:int64, msg:string, attrs:string }
+// ClientPushmsg ...
 type ClientPushmsg struct {
 	From  int64  `json:"from"`
 	Mtype int8   `json:"mtype"`
