@@ -3,6 +3,7 @@ package rtm
 import (
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 
@@ -137,6 +138,10 @@ func (c *Client) which() (err error) {
 	if err != nil {
 		return
 	}
+	if len(data) < 1 {
+		err = errors.New(`wrong answer when ask endpoint`)
+		return
+	}
 
 	r := clientWhichReturn{}
 	err = json.Unmarshal(data[0].Content, &r)
@@ -268,7 +273,7 @@ func (c *Client) Read() (ra []*Read, err error) {
 		}
 
 		if r.Method == `pushmsg` {
-			buf := mpp.ToJson(r.Content)
+			buf := mpp.ToJSON(r.Content)
 			r.Content = buf.Bytes()
 		}
 	}
