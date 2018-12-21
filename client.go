@@ -275,6 +275,7 @@ func (c *Client) Read() (ra []*Read, err error) {
 		if r.Method == `pushmsg` {
 			buf := mpp.ToJSON(r.Content)
 			r.Content = buf.Bytes()
+			c.answer(r.Seq, nil)
 		}
 	}
 

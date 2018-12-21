@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"strconv"
 	"time"
@@ -20,11 +21,19 @@ func main() {
 		ClientGate:         configClientGate,
 	})
 
+	token, err := rtm.ServerGettoken(654321)
+	fmt.Println(token, err)
+
+	go server()
+
+	bot(10001)
+
+	return
+
 	for i := int64(0); i < 10; i++ {
 		go archer(20000 + i)
 	}
 
-	bot(10001)
 }
 
 // 负责发送消息
@@ -79,9 +88,9 @@ func bot(id int64) {
 
 			if r.Method == `pushmsg` {
 				s, _ := rtm.GetPushmsg(r.Content)
-				fmt.Println(`pushmsg`, s.From, s.Msg)
+				log.Println(`pushmsg`, s.From, s.Msg)
 			} else {
-				fmt.Println(string(r.Content))
+				log.Println(string(r.Content))
 			}
 
 			if err != nil {
