@@ -24,16 +24,14 @@ func main() {
 	token, err := rtm.ServerGettoken(654321)
 	fmt.Println(token, err)
 
-	go server()
-
-	bot(10001)
-
-	return
+	go echo(10002)
+	go bot(10001)
 
 	for i := int64(0); i < 10; i++ {
-		go archer(20000 + i)
+		// go archer(20000 + i)
 	}
 
+	server()
 }
 
 // 负责发送消息
@@ -80,15 +78,59 @@ func bot(id int64) {
 
 		for x, r := range ra {
 
+			if r.Method == `ping` || r.Method == `` {
+				continue
+			}
 			fmt.Println(`#`, x)
+
+			if r.Method == `pushmsg` {
+				// s, _ := rtm.GetPushmsg(r.Content)
+				// log.Println(`pushmsg`, s.From, s.Msg)
+			} else {
+				log.Println(string(r.Content))
+			}
+
+			if err != nil {
+
+				fmt.Println(`client err`, err)
+				return
+			}
+		}
+		// fmt.Println(`loop`)
+	}
+}
+
+// 接收遍历显示所有消息
+func echo(id int64) {
+
+	c := rtm.NewClient(id)
+	err := c.Connect()
+	if err != nil {
+		fmt.Println(`client connect err`, err)
+		return
+	}
+
+	fmt.Println(`start read`)
+	for {
+		ra, err := c.Read()
+		if err != nil {
+			fmt.Println(`read error:`, err)
+			break
+		}
+
+		for x, r := range ra {
 
 			if r.Method == `ping` || r.Method == `` {
 				continue
 			}
+			fmt.Println(`#`, x)
 
 			if r.Method == `pushmsg` {
 				s, _ := rtm.GetPushmsg(r.Content)
-				log.Println(`pushmsg`, s.From, s.Msg)
+
+				c.Sendmsg(s.From, s.Msg)
+
+				// log.Println(`echo msg`, s.From, s.Msg)
 			} else {
 				log.Println(string(r.Content))
 			}

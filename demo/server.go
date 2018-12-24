@@ -28,7 +28,17 @@ func server() {
 
 func getToken(w http.ResponseWriter, r *http.Request) {
 
-	token, _ := rtm.ServerGettoken(654321)
+	s, ok := r.URL.Query()[`uid`]
+	if !ok {
+		return
+	}
+
+	i, err := strconv.Atoi(s[0])
+	if err != nil || i < 1 {
+		return
+	}
+
+	token, _ := rtm.ServerGettoken(int64(i))
 
 	b := []byte(token)
 

@@ -255,27 +255,38 @@ func (c *Client) answer(seq []byte, data interface{}) (err error) {
 // Read 读
 func (c *Client) Read() (ra []*Read, err error) {
 
-	var remain []byte
-	ra, remain, err = read(c.Conn, c.remain)
-	if err != nil {
-		return
-	}
-	c.remain = remain
+	for {
 
-	if len(remain) > 0 {
-		fmt.Println(`remain`, len(remain), remain, c)
-	}
+		isReturn := false
 
-	for _, r := range ra {
+		var remain []byte
+		ra, remain, err = read(c.Conn, c.remain)
+		if err != nil {
+			return
+		}
+		c.remain = remain
 
-		if !c.parse(r) {
-			continue
+		if len(remain) > 0 {
+			fmt.Println(`remain`, len(remain), remain, c)
 		}
 
-		if r.Method == `pushmsg` {
-			buf := mpp.ToJSON(r.Content)
-			r.Content = buf.Bytes()
-			c.answer(r.Seq, nil)
+		for _, r := range ra {
+
+			if !c.parse(r) {
+				continue
+			}
+
+			isReturn = true
+
+			if r.Method == `pushmsg` {
+				buf := mpp.ToJSON(r.Content)
+				r.Content = buf.Bytes()
+				c.answer(r.Seq, nil)
+			}
+		}
+
+		if isReturn {
+			break
 		}
 	}
 
