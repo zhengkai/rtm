@@ -7,7 +7,7 @@ import (
 
 func read(conn *net.TCPConn, pad []byte) (r []*Read, remain []byte, err error) {
 
-	recv := make([]byte, 4096)
+	recv := make([]byte, 2000) // rtm 每个包最多就是 mtu 大小，我这里看到的是 1448
 
 	size, err := conn.Read(recv)
 	if err != nil {
@@ -21,6 +21,8 @@ func read(conn *net.TCPConn, pad []byte) (r []*Read, remain []byte, err error) {
 	}
 
 	r, remain, err = readByte(recv)
+
+	// log.Println(`read`, size, len(remain), len(pad))
 
 	if err != nil {
 		conn.Close()

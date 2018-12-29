@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net"
 
 	"github.com/zhengkai/mpp"
@@ -266,9 +265,11 @@ func (c *Client) Read() (ra []*Read, err error) {
 		}
 		c.remain = remain
 
-		if len(remain) > 0 {
-			fmt.Println(`remain`, len(remain), remain, c)
-		}
+		/*
+			if len(remain) > 0 {
+				fmt.Println(`remain`, len(remain))
+			}
+		*/
 
 		for _, r := range ra {
 
