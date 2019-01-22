@@ -70,6 +70,7 @@ func (c *Client) genBaseMsg() clientBaseMsg {
 
 // NewClient 创建信 Client 端
 func NewClient(uid int64) *Client {
+
 	if globalConfig == nil {
 		return nil
 	}
@@ -84,7 +85,7 @@ func NewClient(uid int64) *Client {
 }
 
 // Connect 创建连接
-func (c *Client) Connect() (err error) {
+func (c *Client) Connect(token string) (err error) {
 
 	c.remain = nil
 
@@ -98,16 +99,18 @@ func (c *Client) Connect() (err error) {
 		return
 	}
 
-	err = c.auth()
+	if token == `` {
+		token, err = ServerGettoken(c.Config.UID)
+		if err != nil {
+			return
+		}
+	}
+
+	err = c.auth(token)
 	return
 }
 
-func (c *Client) auth() (err error) {
-
-	token, err := ServerGettoken(c.Config.UID)
-	if err != nil {
-		return
-	}
+func (c *Client) auth(token string) (err error) {
 
 	d := clientAuth{
 		PID:     c.Config.ProjectID,
@@ -264,12 +267,6 @@ func (c *Client) Read() (ra []*Read, err error) {
 			return
 		}
 		c.remain = remain
-
-		/*
-			if len(remain) > 0 {
-				fmt.Println(`remain`, len(remain))
-			}
-		*/
 
 		for _, r := range ra {
 
