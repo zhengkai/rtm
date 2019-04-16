@@ -55,7 +55,7 @@ func getSendBuffer(mtype Mtype, sizeOrStatus uint8) (buf bytes.Buffer) {
 
 	buf.Write([]byte(`FPNN`))
 	buf.WriteByte(1)            // VERSION
-	buf.WriteByte(0x40)         // FLAG
+	buf.WriteByte(0x80)         // FLAG 0x40 json 0x200 msgpack
 	buf.WriteByte(uint8(mtype)) // mtype answer
 	buf.WriteByte(sizeOrStatus) // size or status
 	return buf

@@ -1,2 +1,2 @@
-github.com/zhengkai/mpp v1.0.2 h1:SHO21bZ1yTTQ2pdWg5ZuBXtm6XezWwsXD1YZkA8DSbI=
-github.com/zhengkai/mpp v1.0.2/go.mod h1:eRgv81DXmlB6CWszlnSx1darcvyCXb9ldYzD6lzj75k=
+github.com/vmihailenco/msgpack v4.0.4+incompatible h1:dSLoQfGFAo3F6OoNhwUmLwVgaUXK79GlxNBwueZn0xI=
+github.com/vmihailenco/msgpack v4.0.4+incompatible/go.mod h1:fy3FlTQTDXWkZ7Bh6AcGMlsjHatGryHQYUTf1ShIgkk=

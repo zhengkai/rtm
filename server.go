@@ -4,9 +4,12 @@ package rtm
 
 import (
 	"encoding/binary"
-	"encoding/json"
+	"fmt"
 	"net"
+	"sync"
 	"time"
+
+	"github.com/vmihailenco/msgpack"
 )
 
 // Server 服务器连接
@@ -15,41 +18,48 @@ type Server struct {
 	Config *Config
 	seq    uint32
 	mid    int64
+	lock   sync.Mutex
 }
 
 type serverBase struct {
-	PID  int32  `json:"pid"`
-	Sign string `json:"sign"`
-	Salt int64  `json:"salt"`
+	PID  int32  `json:"pid" msgpack:"pid"`
+	Sign string `json:"sign" msgpack:"sign"`
+	Salt int64  `json:"salt" msgpack:"salt"`
 }
 
 type serverBaseMsg struct {
-	MType int8   `json:"mtype"`
-	From  int64  `json:"from"`
-	MID   int64  `json:"mid"`
-	Msg   string `json:"msg"`
-	Attrs string `json:"attrs"`
+	MType int8   `json:"mtype" msgpack:"mtype"`
+	From  int64  `json:"from" msgpack:"from"`
+	MID   int64  `json:"mid" msgpack:"mid"`
+	Msg   string `json:"msg" msgpack:"msg"`
+	Attrs string `json:"attrs" msgpack:"attrs"`
 }
 
 type serverSendmsg struct {
 	serverBase
 	serverBaseMsg
-	To int64 `json:"to"`
+	To int64 `msgpack:"to"`
+}
+
+type serverSendroommsg struct {
+	serverBase
+	serverBaseMsg
+	Rid int64 `json:"rid" msgpack:"rid"`
 }
 
 type serverSendmsgs struct {
 	serverBase
 	serverBaseMsg
-	Tos []int64 `json:"tos"`
+	Tos []int64 `msgpack:"tos"`
 }
 
 type serverGettoken struct {
 	serverBase
-	UID int64 `json:"uid"`
+	UID int64 `msgpack:"uid"`
 }
 
 type serverGettokenReturn struct {
-	Token string `json:"token"`
+	Token string `msgpack:"token"`
 }
 
 // NewServer 建立新 Server 端
@@ -112,6 +122,23 @@ func (s *Server) Sendmsg(from, to int64, msg string) (err error) {
 	return s.send(`sendmsg`, &data)
 }
 
+// Sendroommsg 发送 room 消息
+func (s *Server) Sendroommsg(from, rid int64, msg string) (err error) {
+
+	fmt.Println(`Sendroommsg`, from, rid, msg)
+
+	data := serverSendroommsg{}
+
+	data.serverBase = s.genBase()
+	data.serverBaseMsg = s.genBaseMsg()
+
+	data.From = from
+	data.Rid = rid
+	data.Msg = msg
+
+	return s.send(`sendroommsg`, &data)
+}
+
 // ServerGettoken ...
 func ServerGettoken(uid int64) (token string, err error) {
 
@@ -133,7 +160,7 @@ func ServerGettoken(uid int64) (token string, err error) {
 	}
 
 	r := serverGettokenReturn{}
-	err = json.Unmarshal(j.Content, &r)
+	err = msgpack.Unmarshal(j.Content, &r)
 	if err != nil {
 		return
 	}
@@ -192,10 +219,18 @@ func (s *Server) Gettoken(uid int64) (err error) {
 
 func (s *Server) send(method string, data interface{}) (err error) {
 
-	jsonb, err := json.Marshal(data)
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	// debug, err := json.Marshal(data)
+	// fmt.Println(`debug send`, string(debug), data)
+
+	jsonb, err := msgpack.Marshal(data)
 	if err != nil {
 		return
 	}
+
+	// fmt.Println(`json len`, len(jsonb))
 
 	// xp, err := json.MarshalIndent(data, ``, "\t")
 	// fmt.Println(string(xp))
@@ -212,6 +247,8 @@ func (s *Server) send(method string, data interface{}) (err error) {
 
 	b := buf.Bytes()
 	_, err = s.Conn.Write(b)
+
+	fmt.Println(`server send`, err)
 
 	return
 }

@@ -2,11 +2,10 @@ package rtm
 
 import (
 	"encoding/binary"
-	"encoding/json"
 	"errors"
 	"net"
 
-	"github.com/zhengkai/mpp"
+	"github.com/vmihailenco/msgpack"
 )
 
 // Client 客户端连接
@@ -20,15 +19,15 @@ type Client struct {
 }
 
 type clientWhich struct {
-	PID      int32  `json:"pid"`
-	UID      int64  `json:"mid"`
-	What     string `json:"what"`
-	AddrType string `json:"addrType"`
-	Version  int32  `json:"version"`
+	PID      int32  `msgpack:"pid"`
+	UID      int64  `msgpack:"mid"`
+	What     string `msgpack:"what"`
+	AddrType string `msgpack:"addrType"`
+	Version  int32  `msgpack:"version"`
 }
 
 type clientWhichReturn struct {
-	Endpoint string `json:"endpoint"`
+	Endpoint string `msgpack:"endpoint"`
 }
 
 // Read 从 rtm 读到的数据
@@ -40,25 +39,25 @@ type Read struct {
 }
 
 type clientBaseMsg struct {
-	MID   int64  `json:"mid"`
-	MType int8   `json:"mtype"`
-	Msg   string `json:"msg"`
-	Attrs string `json:"attrs"`
+	MID   int64  `msgpack:"mid"`
+	MType int8   `msgpack:"mtype"`
+	Msg   string `msgpack:"msg"`
+	Attrs string `msgpack:"attrs"`
 }
 
 type clientSendmsg struct {
 	clientBaseMsg
-	To int64 `json:"to"`
+	To int64 `msgpack:"to"`
 }
 
 // ClientPushmsg ...
 type ClientPushmsg struct {
-	From  int64  `json:"from"`
-	Mtype int8   `json:"mtype"`
-	Ftype int8   `json:"ftype"`
-	MID   int64  `json:"mid"`
-	Msg   string `json:"msg"`
-	Attrs string `json:"attrs"`
+	From  int64  `msgpack:"from"`
+	Mtype int8   `msgpack:"mtype"`
+	Ftype int8   `msgpack:"ftype"`
+	MID   int64  `msgpack:"mid"`
+	Msg   string `msgpack:"msg"`
+	Attrs string `msgpack:"attrs"`
 }
 
 func (c *Client) genBaseMsg() clientBaseMsg {
@@ -146,7 +145,7 @@ func (c *Client) which() (err error) {
 	}
 
 	r := clientWhichReturn{}
-	err = json.Unmarshal(data[0].Content, &r)
+	err = msgpack.Unmarshal(data[0].Content, &r)
 	if err != nil {
 		return
 	}
@@ -159,10 +158,10 @@ func (c *Client) which() (err error) {
 }
 
 type clientAuth struct {
-	PID     int32  `json:"pid"`
-	UID     int64  `json:"uid"`
-	Token   string `json:"token"`
-	Version int32  `json:"version"`
+	PID     int32  `msgpack:"pid"`
+	UID     int64  `msgpack:"uid"`
+	Token   string `msgpack:"token"`
+	Version int32  `msgpack:"version"`
 }
 
 func (c *Client) connect(endpoint string) (err error) {
@@ -184,11 +183,14 @@ func (c *Client) connect(endpoint string) (err error) {
 }
 
 func jsonMarshal(data interface{}) (r []byte, err error) {
-	if data == nil {
-		r = []byte(`{}`)
-	} else {
-		r, err = json.Marshal(data)
-	}
+	/*
+		if data == nil {
+			r = []byte(`{}`)
+		} else {
+			r, err = msgpack.Marshal(data)
+		}
+	*/
+	r, err = msgpack.Marshal(data)
 	return
 }
 
@@ -277,8 +279,8 @@ func (c *Client) Read() (ra []*Read, err error) {
 			isReturn = true
 
 			if r.Method == `pushmsg` {
-				buf := mpp.ToJSON(r.Content)
-				r.Content = buf.Bytes()
+				// buf := mpp.ToJSON(r.Content)
+				// r.Content = buf.Bytes()
 				c.answer(r.Seq, nil)
 			}
 		}
@@ -302,8 +304,8 @@ func (c *Client) parse(r *Read) (isReturn bool) {
 }
 
 // GetPushmsg ...
-func GetPushmsg(b []byte) (r ClientPushmsg, err error) {
-	r = ClientPushmsg{}
-	err = json.Unmarshal(b, &r)
+func GetPushmsg(b []byte) (r *ClientPushmsg, err error) {
+	r = &ClientPushmsg{}
+	err = msgpack.Unmarshal(b, r)
 	return
 }

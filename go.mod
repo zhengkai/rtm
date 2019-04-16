@@ -1,3 +1,3 @@
 module github.com/zhengkai/rtm
 
-require github.com/zhengkai/mpp v1.0.2
+require github.com/vmihailenco/msgpack v4.0.4+incompatible

@@ -2,6 +2,7 @@ package rtm
 
 import (
 	"encoding/binary"
+	"fmt"
 	"net"
 )
 
@@ -140,6 +141,7 @@ func readParseSize(v []byte, mtype Mtype) (headSize, methodSize int, fullSize in
 
 	if mtype == MtypeAnswer {
 		if v[7] != 0 {
+			fmt.Println(`ErrAnswerStatus`, v[7])
 			err = ErrAnswerStatus
 			return
 		}
