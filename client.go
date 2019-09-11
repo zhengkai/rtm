@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net"
 
-	"github.com/vmihailenco/msgpack"
+	"github.com/vmihailenco/msgpack/v4"
 )
 
 // Client 客户端连接
